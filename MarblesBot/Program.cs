@@ -10,19 +10,19 @@ namespace MarblesBot
 {
     class Program
     {
-        private static string _botName = "";
-        private static string _broadcasterName = "";
-        private static string _twitchOAuth = "";
-
         static void Main(string[] args)
         {
+            string botName = "";
+            string channelName = "";
+            string authToken = "";
+
             string folder = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + @"\botinfo.txt";
 
             using (StreamReader sr = new StreamReader(folder))
             {
-                _botName = sr.ReadLine();
-                _broadcasterName = sr.ReadLine();
-                _twitchOAuth = sr.ReadLine();
+                botName = sr.ReadLine().ToLower();
+                channelName = sr.ReadLine().ToLower();
+                authToken = sr.ReadLine().ToLower();
                 sr.Close();
             }
 
@@ -30,7 +30,7 @@ namespace MarblesBot
             List<string> pastmessages = new List<string>();
 
             // Initialize and connect to Twitch chat
-            IrcClient irc = new IrcClient("irc.chat.twitch.tv", 6667, _botName, _twitchOAuth, _broadcasterName);
+            IrcClient irc = new IrcClient("irc.twitch.tv", 6667, botName, authToken, channelName);
 
             // Ping to the server to make sure this bot stays connected to the chat
             // Server will respond back to this bot with a PONG (without quotes):
@@ -47,7 +47,7 @@ namespace MarblesBot
 
                 if (message.Contains("PRIVMSG"))
                 {
-                    // Messages from the users will look something like this (without quotes):
+                    // Messages from the users will look something like this
                     // Format: ":[user]![user]@[user].tmi.twitch.tv PRIVMSG #[channel] :[message]"
 
                     // Modify message to only retrieve user and message
@@ -62,17 +62,17 @@ namespace MarblesBot
                     //Console.WriteLine(message); // Print parsed irc message (debugging only)
 
                     pastmessages.Add(message);
-                    if (pastmessages.Count > 5)
+                    if (pastmessages.Count > 3)
                     {
                         pastmessages.RemoveAt(0);
                     }
 
                     //check last 5 messages have been !play
-                    if (!pastmessages.Any(m => m != "!play") && lastPostTime.AddMinutes(2) > DateTime.Now)
+                    if (!pastmessages.Any(m => !m.StartsWith("!play")) && lastPostTime.AddMinutes(2) <= DateTime.Now)
                     {
                         //only post once every 2 minutes
                         lastPostTime = DateTime.Now;
-                        //irc.SendPublicChatMessage("!play");
+                        irc.SendPublicChatMessage("!play");
                     }
                 }
             }
